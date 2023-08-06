@@ -1,0 +1,81 @@
+// import React from 'react';
+import { useEffect, useState } from 'react';
+import { useOutletContext, useParams } from 'react-router-dom';
+import { API_URLS } from '../services/api_urls';
+import useApi from '../hooks/useApi';
+import Email from './Email';
+import {Checkbox,Box} from '@mui/material/';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import NoMails from './common/NoMails';
+import { EMPTY_TABS } from '../constants/constant';
+
+
+
+const Emails = () => {
+  const [selectedEmails, setSelectedEmails] = useState([]);
+  const [starredEmail, setStarredEmail] = useState(false);
+
+
+    const {openDrawer} = useOutletContext();
+    const { type } = useParams();
+
+    const getEmailsService = useApi(API_URLS.getEmailFromType);
+    const deleteEmailsService = useApi(API_URLS.deleteEmails);
+    const moveEmailsToBin = useApi(API_URLS.moveEmailsToBin);
+     
+    useEffect(()=>{ 
+      getEmailsService.call({},type);
+    },[type,starredEmail])
+
+    const selectAllEmails = (e) => {
+      if (e.target.checked) {
+          const emails = getEmailsService?.response?.map(email => email._id);
+          setSelectedEmails(emails);
+      } else {
+          setSelectedEmails([]);
+      }
+  }
+  const deleteSelectedEmails = () => {
+    if (type === 'bin') {
+        deleteEmailsService.call(selectedEmails);
+    } else {
+        moveEmailsToBin.call(selectedEmails);
+    }
+    setStarredEmail(prevState => !prevState);
+}
+  return (
+    // <div style={openDrawer ? { marginLeft: 250, width: '100%' } : { width: '100%' } }>
+    //    hello from Email
+    //   </div>
+     <Box style={openDrawer ? {marginLeft: 250, width: 'calc(100%-250px)'}: {width:'100%'}} > 
+      <Box style={{ padding: '20px 10px 0 10px', display: 'flex', alignItems: 'center' }}>
+    <Checkbox size="small" onChange={(e) => selectAllEmails(e)}/>
+    <DeleteOutlineIcon onClick={(e) => deleteSelectedEmails(e)}/>
+      </Box>
+
+     <List >
+     {
+                    getEmailsService?.response?.map(email => (
+                        <Email 
+                            email={email} 
+                            key={email._id}
+                            setStarredEmail={setStarredEmail}  // setrefreshscreen
+                            selectedEmails={selectedEmails}
+                            setSelectedEmails={setSelectedEmails}
+                        /> 
+                    ))
+                }
+
+     </List>
+     {
+           getEmailsService?.response?.length === 0 &&
+           <NoMails message={EMPTY_TABS[type]} />
+  
+     }
+    </Box> 
+    )
+}
+
+export default Emails
